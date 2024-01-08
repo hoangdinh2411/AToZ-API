@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
-const createError = require('http-errors');
+const createHttpError = require('http-errors');
 const connectDatabase = require('./api/database/mongo-connect');
 const logHelper = require('./api/v1/helpers/log-helper');
 const app = express();
@@ -32,7 +32,21 @@ require('dotenv').config();
 
 const port = process.env.PORT || 9999;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    allowedHeaders: 'Content-Type,Authorization',
+    optionsSuccessStatus: 200,
+  }),
+);
+app.use((req, res, next) => {
+  res.header('Content-Type', 'application/json;charset=UTF-8');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
@@ -49,8 +63,9 @@ app.use(
 // global.__io.on('connection', SocketModule.connection);
 
 app.use('/api', apiRouter);
+
 app.use(function (req, res, next) {
-  next(createError.NotFound('This router does not exist.'));
+  next(createHttpError.NotFound('This router does not exist.'));
 });
 app.use(function (err, req, res, next) {
   let status = err.status || 500;
@@ -58,10 +73,11 @@ app.use(function (err, req, res, next) {
     logHelper.logEvent(
       `user_id:${req.payload?.id} --> ${req.method}:${req.url} ${status} --> err:${err.message}`,
     );
+  console.log(err);
   return res.status(status).json({
     success: false,
     status,
-    error: err.message,
+    message: err.message,
   });
 });
 

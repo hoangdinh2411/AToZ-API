@@ -1,7 +1,8 @@
-const createError = require('http-errors');
+const createHttpError = require('http-errors');
 const categoryValidation = require('../../validations/category-validate');
 const CategoryModel = require('../../models/category-model');
 const SubcategoryModel = require('../../models/sub-category-model');
+const { ERROR_MESSAGES } = require('../../helpers/variables');
 class CategoryController {
   static async create(req, res, next) {
     try {
@@ -13,16 +14,16 @@ class CategoryController {
       });
     } catch (error) {
       if (error.code === 11000) {
-        return next(createError.Conflict('category-already-exists'));
+        return next(createHttpError.Conflict(ERROR_MESSAGES.CATEGORY.EXISTING));
       }
-      return next(createError.BadRequest(error.message));
+      return next(createHttpError.BadRequest(error.message));
     }
   }
   static async addSubcategory(req, res, next) {
     try {
       await categoryValidation.subcategory.validate(req.body);
       const category = await CategoryModel.findOne({ _id: req.body.category_id });
-      if (!category) return next(createError.NotFound('category-not-found'));
+      if (!category) return next(createHttpError.NotFound(ERROR_MESSAGES.CATEGORY.NOT_FOUND));
       let subcategory = new SubcategoryModel({
         subcategory_name: req.body.subcategory_name,
         category: req.body.category_id,
@@ -35,9 +36,9 @@ class CategoryController {
       });
     } catch (error) {
       if (error.code === 11000) {
-        return next(createError.Conflict('subcategory-already-exists'));
+        return next(createHttpError.Conflict(ERROR_MESSAGES.SUBCATEGORY.EXISTING));
       }
-      return next(createError.BadRequest(error.message));
+      return next(createHttpError.BadRequest(error.message));
     }
   }
   static async getAll(req, res, next) {
@@ -50,7 +51,7 @@ class CategoryController {
         data: categories,
       });
     } catch (error) {
-      return next(createError.BadRequest(error.message));
+      return next(createHttpError.BadRequest(error.message));
     }
   }
 }

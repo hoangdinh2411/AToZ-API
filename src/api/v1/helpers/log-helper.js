@@ -17,6 +17,12 @@ const logHelper = {
       console.log('logEvent error:::', error);
     }
   },
+  adjustErrorMessageWhenObjectIdInvalid: function (error) {
+    if (error.name === 'CastError' && error.kind === 'ObjectId') {
+      return 'id-invalid';
+    }
+    return error.message;
+  },
 };
 
 module.exports = logHelper;

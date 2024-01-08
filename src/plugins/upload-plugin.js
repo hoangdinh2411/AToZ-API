@@ -1,54 +1,39 @@
 const fs = require('fs');
+const createHttpError = require('http-errors');
 const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-const helpers = require('../api/v1/helpers');
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET,
+  secure: true,
 });
-
-const storageSingle = new CloudinaryStorage({
-  cloudinary,
-  allowedFormats: ['jpg', 'png', 'jpeg', 'heic', 'gif'],
-  filename: function (req, file, cb) {
-    let fileName = helpers.generateFileName(file.originalname, file.mimetype);
-    cb(null, fileName);
-  },
-});
-
-const storage = multer.diskStorage({
-  destination: async function (req, file, cb) {
-    try {
-      let fileDir = `${__appRoot}/public/media/${req.payload.id}-${helpers.getFolderNameByMonth()}`;
-      if (!fs.existsSync(fileDir)) {
-        fs.mkdirSync(fileDir, { recursive: true });
-      }
-
-      cb(null, `${fileDir}`);
-    } catch (error) {
-      cb(error);
-    }
-  },
-  filename: function (req, file, cb) {
-    let fileName = helpers.generateFileName(file.originalname, file.mimetype);
-    cb(null, fileName);
-  },
-});
-
-const uploadCloud = multer({
-  storage,
-  limits: {
-    fileSize: 20480 * 1024 * 1024,
-    files: 10,
-  },
+const uploadImage = multer({
+  dest: 'uploads/',
   fileFilter: async (req, file, cb) => {
-    if (!['image/jpeg', 'image/png', 'image/gif', 'image/heic'].includes(file.mimetype))
+    console.log('uploadImage', req.file);
+    console.log('uploadImage', file);
+    if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.mimetype))
       return cb(new Error('incorrect-file-format'), false);
     return cb(null, true);
   },
-});
+  limits: {
+    fileSize: 1024 * 30,
+    files: 1,
+  },
+}).single('image');
 
-module.exports = { uploadCloud, cloudinary };
+function middlewareUploadImage(req, res, next) {
+  uploadImage(req, res, async function (err) {
+    if (err instanceof multer.MulterError) {
+      console.log('middlewareUploadImage', err);
+      next(createHttpError.BadRequest(err.message));
+    } else if (err) {
+      next(createHttpError.InternalServerError(err || 'Cannot upload image, please try later'));
+    }
+    next();
+  });
+}
+
+module.exports = { middlewareUploadImage, uploadImage, cloudinary };

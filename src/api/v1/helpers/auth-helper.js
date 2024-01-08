@@ -1,16 +1,12 @@
 const jwt = require('jsonwebtoken');
-const createError = require('http-errors');
-let optionSecret = {
-  token: process.env.JWT_SECRET,
-  partner: process.env.JWT_SECRET_PARTNER,
-  admin: process.env.JWT_SECRET_ADMIN,
-};
+const createHttpError = require('http-errors');
+
 const authHelper = {
-  validateToken: function ({ token, type = 'token' }) {
+  validateToken: function (token) {
     try {
       let result = {};
 
-      jwt.verify(token, optionSecret[type], async function (err, decoded) {
+      jwt.verify(token, process.env.JWT_SECRET, async function (err, decoded) {
         if (err) {
           result = { payload: null, err };
         } else {
@@ -21,21 +17,24 @@ const authHelper = {
       return result;
     } catch (error) {
       console.error('validateToken', error);
-      return createError.Unauthorized(error.message);
+      return createHttpError.Unauthorized(error.message);
     }
   },
-  generateToken: async function ({ payload, type = 'token' }) {
+  generateToken: async function ({ payload }) {
     try {
-      console.log(optionSecret[type]);
       let expiresIn = '1h';
       let options = { expiresIn };
-      let token = jwt.sign(payload, optionSecret[type], options);
+      let token = jwt.sign(payload, process.env.JWT_SECRET, options);
       return token;
     } catch (error) {
       console.log(' set token error:::', error);
-      return createError.InternalServerError(error);
+      return createHttpError.InternalServerError(error);
     }
   },
 };
 
-module.exports = authHelper;
+const HIGH_LEVEL_PERMISSION_GROUP = ['ADMINISTRATOR'];
+module.exports = {
+  authHelper,
+  HIGH_LEVEL_PERMISSION_GROUP,
+};

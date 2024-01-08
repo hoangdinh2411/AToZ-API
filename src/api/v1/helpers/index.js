@@ -1,16 +1,33 @@
 const requestIp = require('request-ip');
 const satelize = require('satelize');
-
 const helpers = {
   getTimeByTimezone: function (ip) {
-    return satelize.satelize({ ip }, (err, payload) => {
-      return payload;
-    });
+    let options = {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+      },
+      formatter = new Intl.DateTimeFormat([], options);
+    return formatter.format(new Date());
   },
   getIpByRequest: function (req) {
     return requestIp.getClientIp(req);
   },
-
+  getFolderNameByMonth: function () {
+    let d = new Date();
+    return `${d.getMonth() + 1}-${d.getFullYear()}`;
+  },
+  generateFileName: async function (originalname) {
+    let splitName = originalname.split('.');
+    let extension = splitName[splitName.length - 1];
+    extension = extension.toLowerCase();
+    let unique = Date.now();
+    return `${unique}.${extension}`;
+  },
   getCurrentTimestamp: function () {
     return Math.round(new Date().getTime() / 1000);
   },
@@ -50,6 +67,10 @@ const helpers = {
       .replace(/\-\-+/g, '-')
       .replace(/^-+/, '')
       .replace(/-+$/, '');
+  },
+
+  formatFrom: function (title) {
+    return title.toUpperCase().replace(/\s/g, '_');
   },
 };
 

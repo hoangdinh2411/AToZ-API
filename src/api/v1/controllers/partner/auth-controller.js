@@ -1,44 +1,37 @@
-const createError = require('http-errors');
+const createHttpError = require('http-errors');
 const profileValidation = require('../../validations/profile-validate');
 const { generateSlugFrom } = require('../../helpers');
 const UserModel = require('../../models/user-model');
+const { ERROR_MESSAGES } = require('../../helpers/variables');
 class PartnerAuthController {
   static async updateProfile(req, res, next) {
     try {
       await profileValidation.partner.validate(req.body);
+      const data = profileValidation.partner.cast(req.body);
       let result = await UserModel.findOneAndUpdate(
-        { _id: req.payload.id },
+        {
+          _id: req.payload.id,
+        },
         {
           $set: {
-            ...req.body,
+            ...data,
             slug: generateSlugFrom(req.body.company_name),
+            status: 'active',
           },
         },
         {
           new: true,
         },
-      );
-      if (!result) return next(createError.NotFound('partner-not-found'));
+      )
+        .select('-password -__v -token')
+        .populate('role', '-__v');
+      if (!result) return next(createHttpError.NotFound(ERROR_MESSAGES.USER.NOT_FOUND));
       return res.status(200).json({
         success: true,
+        data: result,
       });
     } catch (error) {
-      return next(createError.BadRequest(error.message));
-    }
-  }
-
-  static async getProfile(req, res, next) {
-    try {
-      const user = await UserModel.findOne({ _id: req.payload.id });
-
-      if (!user) return next(createError.NotFound('partner-not-found'));
-      const data = await user.partnerDetail();
-      return res.status(200).json({
-        success: true,
-        data,
-      });
-    } catch (error) {
-      return next(createError.BadRequest(error.message));
+      return next(createHttpError.BadRequest(error.message));
     }
   }
 }

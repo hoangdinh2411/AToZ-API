@@ -1,11 +1,12 @@
 const express = require('express');
 const AdminAuthController = require('../../controllers/admin/auth-controller');
-const authMiddleware = require('../../middlewares/auth-middleware');
+const RoleController = require('../../controllers/admin/role-controller');
+const PermissionController = require('../../controllers/admin/permission-controller');
 const router = express.Router();
 
 router.post('/login', AdminAuthController.login);
-router.post('/register', AdminAuthController.register);
-router.post('/partner', authMiddleware.admin, AdminAuthController.createPartnerAccount);
-router.get('/logout', authMiddleware.optional, AdminAuthController.logout);
-
+// for development only, when create super admin without check token or permission
+router.post('/super-admin/role', RoleController.createSuperAdminRole);
+router.post('/super-admin/permission', PermissionController.createAdministratorPermission);
+router.post('/super-admin/register', AdminAuthController.registerSuperAdmin);
 module.exports = router;
